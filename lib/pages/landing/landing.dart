@@ -78,7 +78,7 @@ class LandingPage extends StatelessWidget {
                       padding: EdgeInsets.symmetric(horizontal: 40, vertical: 15),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(color: Color(0xFF365B50)), // Border color
+                        side: BorderSide(color: Color.fromRGBO(54, 91, 80, 1)), // Border color
                       ),
                     ),
                     onPressed: () {
@@ -87,7 +87,7 @@ class LandingPage extends StatelessWidget {
                     },
                     child: Text(
                       'Sign Up',
-                      style: TextStyle(fontSize: 16, color: Color(0xFF365B50)),
+                      style: TextStyle(fontSize: 16, color: Color.fromRGBO(54, 91, 80, 1)),
                     ),
                   ),
                 ],

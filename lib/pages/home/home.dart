@@ -1,217 +1,112 @@
-import 'package:bio_trail/pages/explore/explore.dart';
-
-import '../../services/auth_service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 
-class Home extends StatefulWidget {
-  const Home({super.key});
+class HomePage extends StatelessWidget {
+  final String userName;
 
-  @override
-  _HomeState createState() => _HomeState();
-}
-
-class _HomeState extends State<Home> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  List<String> _dropdownItems = [];
-  String? _selectedItem;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchDropdownItems();
-  }
-
-  // Fetch dropdown items from Firestore with debugging
-  Future<void> _fetchDropdownItems() async {
-    try {
-      print('Fetching items from Firestore...');
-      final QuerySnapshot snapshot =
-          await _firestore.collection('Universities').where("name", isNotEqualTo: null).get();
-
-      if (snapshot.docs.isEmpty) {
-        print('No documents found in the Universities collection.');
-      } else {
-        print('Documents found: ${snapshot.docs.length}');
-      }
-
-      // Map the Firestore documents to a list of strings
-      final List<String> items = snapshot.docs.map((doc) {
-        if (doc.data() != null) {
-          print('Document data: ${doc.data()}');
-        } else {
-          print('Document has no data: ${doc.id}');
-        }
-        return doc['name'] as String;
-      }).toList();
-
-      if (items.isEmpty) {
-        print('No valid items found in the collection.');
-      }
-
-      setState(() {
-        _dropdownItems = items;
-        _selectedItem = _dropdownItems.isNotEmpty ? _dropdownItems[0] : null;
-      });
-
-      print('Dropdown items: $_dropdownItems');
-    } catch (e) {
-      print('Error fetching dropdown items: $e');
-    }
-  }
+  const HomePage({Key? key, required this.userName}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: buildAppBar(context),
-      body: buildBody(context),
-    );
-  }
-
-  // Separate AppBar method
-  AppBar buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      leading: PopupMenuButton<int>(
-        icon: const Icon(Icons.account_circle, color: Colors.black),
-        onSelected: (item) => _onSelected(context, item),
-        itemBuilder: (context) => [
-          const PopupMenuItem<int>(value: 0, child: Text('Sign Out')),
-        ],
-      ),
-    );
-  }
-
-  // Separate Body method
-  Widget buildBody(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(height: 20),
-          Text(
-            'Hello👋',
-            style: GoogleFonts.raleway(
-              textStyle: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 10),
-          Text(
-            FirebaseAuth.instance.currentUser?.email ?? 'No User',
-            style: GoogleFonts.raleway(
-              textStyle: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 30),
-
-          // Instruction text above the dropdown
-          Text(
-            'Please select your university:',
-            style: GoogleFonts.raleway(
-              textStyle: const TextStyle(
-                color: Colors.black,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Dropdown Button with fallback
-          _dropdownItems.isEmpty
-              ? const Text('No items available', style: TextStyle(color: Colors.red))
-              : DropdownButton<String>(
-                  value: _selectedItem,
-                  items: _dropdownItems.map((String item) {
-                    return DropdownMenuItem<String>(
-                      value: item,
-                      child: Text(item),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedItem = newValue!;
-                    });
-                  },
-                  style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark, // Makes status bar icons black
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Welcome Message
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.8, // 80% width for the green bar
+                  padding: const EdgeInsets.all(20.0),
+                  color: Color.fromRGBO(10, 86, 86, 1), // Dark green background
+                  child: Text(
+                    'Welcome back, $userName !!',
+                    style: TextStyle(
+                      fontSize: 32, // Font size for welcome message
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
-                  dropdownColor: Colors.white,
                 ),
-          const Spacer(), // Push the explore button to the bottom
-
-          // Explore Button
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xff0D6EFD),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                minimumSize: const Size(double.infinity, 60),
-                elevation: 0,
               ),
-              onPressed: () {
-                
+              SizedBox(height: 20),
 
-                // go to explore page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => Explore(),
+              // Navigation Tabs
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildTabButton('Your Feed', isSelected: true),
+                  _buildTabButton('Recent Sightings'),
+                  _buildTabButton('News'),
+                ],
+              ),
+              SizedBox(height: 8),
+
+              // Placeholder for content with padding
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0), // Padding for the grey section
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                );
-              },
-              child: const Text(
-                "Explore",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
+        // Bottom Navigation Bar
+        bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: Color.fromRGBO(173, 182, 169, 1), // Light green background
+          selectedItemColor: Color.fromRGBO(10, 86, 86, 1), // Dark green for selected
+          unselectedItemColor: Colors.black45,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.explore),
+              label: '',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: '',
+            ),
+          ],
+          currentIndex: 0, // Set the selected index
+          onTap: (index) {
+            // Handle navigation tap
+          },
+        ),
       ),
     );
   }
 
-  // Sign Out logic in the menu
-  void _onSelected(BuildContext context, int item) {
-    switch (item) {
-      case 0:
-        _logout(context);
-        break;
-    }
-  }
-
-  // Logout Function
-  Future<void> _logout(BuildContext context) async {
-    try {
-      print('Signing out...');
-      await AuthService().signout(context: context);
-    } catch (e) {
-      print('Error during sign out: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error signing out: $e')),
-      );
-    }
+  // Helper method to build navigation tabs
+  Widget _buildTabButton(String title, {bool isSelected = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? Color.fromRGBO(10, 86, 86, 1)
+            : Color.fromRGBO(173, 182, 169, 1), // Selected and unselected colors
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          color: isSelected ? Colors.white : Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 }

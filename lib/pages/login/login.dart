@@ -1,198 +1,158 @@
-import '../signup/signup.dart';
-import '../../services/auth_service.dart';
-import 'package:flutter/gestures.dart';
+import 'package:bio_trail/pages/home/home.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:pocketbase/pocketbase.dart';
 
-class Login extends StatelessWidget {
-  Login({super.key});
+final pb = PocketBase('https://gilmartin-karl.ie');
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  String errorMessage = '';
+
+  Future<void> loginUser() async {
+    try {
+      final authData = await pb.collection('users').authWithPassword(
+        emailController.text,
+        passwordController.text,
+      );
+
+      // Navigate to the next screen upon successful login
+      print('User logged in: ${authData.token}');
+      final userJson = authData.record.toJson();
+      final userName = userJson != null && userJson.containsKey('name')
+        ? userJson['name']
+        : 'Guest';
+      Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomePage(userName: userName),
+      ),
+    );
+// Replace with your home page route
+    } catch (e) {
+      print('Login failed: ${e.toString()}');
+      setState(() {
+        errorMessage = 'Login failed: ${e.toString()}';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: true,
-      bottomNavigationBar: _signup(context),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Color.fromRGBO(10, 86, 86, 1),
         elevation: 0,
-        toolbarHeight: 100,
-        leading: GestureDetector(
-          onTap: () {
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
             Navigator.pop(context);
           },
-          child: Container(
-            margin: const EdgeInsets.only(left: 10),
-            decoration: const BoxDecoration(
-              color: Color(0xffF7F7F9),
-              shape: BoxShape.circle
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Colors.black,
-              ),
-            ),
-          ),
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-         padding: const EdgeInsets.symmetric(horizontal: 16,vertical: 16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Center(
-                child: Text(
-                  'Hello Again',
-                  style: GoogleFonts.raleway(
-                    textStyle: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 32
-                    )
-                  ),
-                ),
-              ),
-              const SizedBox(height: 80,),
-               _emailAddress(),
-               const SizedBox(height: 20,),
-               _password(),
-               const SizedBox(height: 50,),
-               _signin(context),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  Widget _emailAddress() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Email Address',
-          style: GoogleFonts.raleway(
-            textStyle: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.normal,
-              fontSize: 16
-            )
-          ),
-        ),
-        const SizedBox(height: 16,),
-        TextField(
-          controller: _emailController,
-          decoration: InputDecoration(
-            filled: true,
-            hintText: 'mahdiforwork@gmail.com',
-            hintStyle: const TextStyle(
-              color: Color(0xff6A6A6A),
-              fontWeight: FontWeight.normal,
-              fontSize: 14
-            ),
-            fillColor: const Color(0xffF7F7F9) ,
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(14)
-            )
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _password() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Password',
-          style: GoogleFonts.raleway(
-            textStyle: const TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.normal,
-              fontSize: 16
-            )
-          ),
-        ),
-        const SizedBox(height: 16,),
-        TextField(
-          obscureText: true,
-          controller: _passwordController,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xffF7F7F9) ,
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(14)
-            )
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _signin(BuildContext context) {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xff0D6EFD),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
-        minimumSize: const Size(double.infinity, 60),
-        elevation: 0,
-      ),
-      onPressed: () async {
-        await AuthService().signin(
-          email: _emailController.text,
-          password: _passwordController.text,
-          context: context
-        );
-      },
-      child: const Text("Sign In"),
-    );
-  }
-
-  Widget _signup(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: RichText(
-        textAlign: TextAlign.center,
-        text: TextSpan(
+      backgroundColor: Colors.white,
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TextSpan(
-                text: "New User? ",
+            SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Login',
                 style: TextStyle(
-                  color: Color(0xff6A6A6A),
-                  fontWeight: FontWeight.normal,
-                  fontSize: 16
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
               ),
-              TextSpan(
-                text: "Create Account",
-                style: const TextStyle(
-                    color: Color(0xff1A1D1E),
-                    fontWeight: FontWeight.normal,
-                    fontSize: 16
-                  ),
-                  recognizer: TapGestureRecognizer()..onTap = () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => Signup()
-                      ),
-                    );
-                  }
+            ),
+            SizedBox(height: 90),
+            Text(
+              'Email:',
+              style: TextStyle(fontSize: 16, color: Colors.black),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                hintText: 'John.Doe@gmail.com',
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
               ),
-          ]
-        )
+              keyboardType: TextInputType.emailAddress,
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Password:',
+              style: TextStyle(fontSize: 16, color: Colors.black),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: passwordController,
+              decoration: InputDecoration(
+                hintText: '********',
+                filled: true,
+                fillColor: Colors.grey[200],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              obscureText: true,
+            ),
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () {
+                  // Add Forgot Password functionality
+                },
+                child: Text(
+                  'Forgot Password?',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ),
+            if (errorMessage.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                child: Text(
+                  errorMessage,
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            Center(
+              child: ElevatedButton(
+                onPressed: loginUser,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color.fromRGBO(54, 91, 80, 1),
+                  padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  'Sign In',
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
