@@ -10,6 +10,10 @@
 	<string>Your location is needed to show nearby universities.</string>
 	<key>NFCReaderUsageDescription</key>
 	<string>Your explanation of why the app needs NFC</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app requires camera access to scan QR codes.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs photos access to get QR code from photo library</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
