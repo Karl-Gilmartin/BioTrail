@@ -1,3 +1,4 @@
+import 'package:bio_trail/pages/explore/explore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:bio_trail/tabs/recent_sightings.dart';
@@ -25,7 +26,7 @@ class _HomePageState extends State<HomePage> {
   // Define the content for the BottomNavigationBar
   final List<Widget> bottomNavScreens = [
     Center(child: Text('Home Screen')), // Placeholder for Home screen
-    Center(child: Text('Explore Screen')), // Placeholder for Explore screen
+    ExplorePage(),
     Center(child: Text('Profile Screen')), // Placeholder for Profile screen
   ];
 
