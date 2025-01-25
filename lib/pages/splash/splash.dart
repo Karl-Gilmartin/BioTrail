@@ -1,6 +1,5 @@
 import 'package:bio_trail/pages/landing/landing.dart';
 import 'package:flutter/material.dart';
-import '../login/login.dart';
 
 class SplashScreen extends StatefulWidget {
   @override

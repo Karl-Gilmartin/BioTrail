@@ -142,14 +142,15 @@ class _UniversityWidgetState extends State<UniversityWidget> {
                             ),
                             onPressed: () {
                               Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => RoutePage(
-                                    routeId: route['id'],
-                                    routeName: route['name'],
-                                  ),
-                                ),
-                              );
+  context,
+  MaterialPageRoute(
+    builder: (context) => RoutePage(
+      routeId: route['id'],  // Pass correct parameter
+      routeName: route['name']  // Pass correct parameter
+    ),
+  ),
+);
+
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
