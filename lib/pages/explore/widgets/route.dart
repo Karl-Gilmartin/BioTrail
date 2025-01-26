@@ -1,13 +1,14 @@
+import 'package:bio_trail/qr_scanner.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:nfc_manager/nfc_manager.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 class RoutePage extends StatefulWidget {
   final String routeId;
   final String routeName;
 
-  const RoutePage({Key? key, required this.routeId, required this.routeName}) : super(key: key);
+  const RoutePage({Key? key, required this.routeId, required this.routeName})
+      : super(key: key);
 
   @override
   _RoutePageState createState() => _RoutePageState();
@@ -17,11 +18,10 @@ class _RoutePageState extends State<RoutePage> {
   final pb = PocketBase('https://gilmartin-karl.ie');
   Map<String, dynamic>? routeDetails;
   bool isLoading = true;
-  bool isScanning = false;
-  String _nfcData = "Scan an NFC tag";
-  LatLng? startingLocation;
-  List<LatLng> routeCoordinates = [];
+  LatLng? startingLocation; 
+  List<LatLng> routeCoordinates = []; 
   late GoogleMapController mapController;
+  Set<Marker> _markers = {};
 
   @override
   void initState() {
@@ -29,89 +29,146 @@ class _RoutePageState extends State<RoutePage> {
     _fetchRouteDetails();
   }
 
+
+  void _showSignDetails(RecordModel sign) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(sign.data['name']),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(sign.data['description']),
+          SizedBox(height: 10),
+          Image.network(
+            '${pb.baseUrl}/api/files/signs/${sign.id}/${sign.data['image']}',
+            height: 150,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Icon(Icons.error),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text("Close"),
+        ),
+      ],
+    ),
+  );
+}
+
+
   Future<void> _fetchRouteDetails() async {
-    try {
-      print("Fetching route details...");
-      final routeRecord = await pb.collection('routes').getOne(widget.routeId);
-      routeDetails = routeRecord.data;
-      print("Route details fetched successfully");
+  try {
+    print("Fetching route details...");
 
-      final universityRecord = await pb.collection('universities').getOne(routeDetails!['university']);
-      final universityLocation = universityRecord.data?['location'];
+    // Fetch route details
+    final routeRecord = await pb.collection('routes').getOne(widget.routeId);
+    if (routeRecord.data == null) {
+      throw Exception("Route data not found for ID: ${widget.routeId}");
+    }
+    routeDetails = routeRecord.data;
+    print("Route details fetched successfully.");
 
-      setState(() {
-        if (universityLocation != null &&
-            universityLocation['features'] != null &&
-            universityLocation['features'].isNotEmpty) {
-          final feature = universityLocation['features'][0];
+    // Fetch university details
+    final universityId = routeDetails!['university'];
+    if (universityId == null) {
+      throw Exception("University ID not found in route data.");
+    }
+
+    final universityRecord = await pb.collection('universities').getOne(universityId);
+    final universityLocation = universityRecord.data?['location'];
+
+    if (universityLocation != null &&
+        universityLocation['features'] != null &&
+        universityLocation['features'].isNotEmpty) {
+      final feature = universityLocation['features'][0];
+      final coordinates = feature['geometry']['coordinates'];
+
+      if (coordinates != null && coordinates.length == 2) {
+        startingLocation = LatLng(coordinates[1], coordinates[0]);
+        print("Starting location set: $startingLocation");
+      } else {
+        throw Exception("Invalid university coordinates data.");
+      }
+    } else {
+      print('University location data is missing or invalid');
+    }
+
+    // Fetch route coordinates and create polyline
+    if (routeDetails != null && routeDetails!['location'] != null) {
+      final routeLocationData = routeDetails!['location'];
+      if (routeLocationData['features'] != null &&
+          routeLocationData['features'].isNotEmpty) {
+        final feature = routeLocationData['features'][0];
+        if (feature['geometry'] != null && feature['geometry']['type'] == 'LineString') {
           final coordinates = feature['geometry']['coordinates'];
-          startingLocation = LatLng(coordinates[1], coordinates[0]);
-          print("Starting location set: $startingLocation");
-        }
 
-        if (routeDetails != null && routeDetails!['location'] != null) {
-          final routeLocationData = routeDetails!['location'];
-          if (routeLocationData['features'] != null &&
-              routeLocationData['features'].isNotEmpty) {
-            final feature = routeLocationData['features'][0];
-
-            if (feature['geometry'] != null && feature['geometry']['type'] == 'LineString') {
-              final coordinates = feature['geometry']['coordinates'];
-              routeCoordinates = coordinates
-                  .map<LatLng>((coord) => LatLng(coord[1], coord[0]))
-                  .toList();
-              print("Route coordinates parsed successfully");
-            }
-          }
-        }
-
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error fetching route/university details: $e');
-      setState(() => isLoading = false);
-    }
-  }
-
-  void _startNfcScan() async {
-    print("NFC scan initiated...");
-    setState(() => isScanning = true);
-
-    try {
-      await NfcManager.instance.startSession(
-        onDiscovered: (NfcTag tag) async {
-          print("NFC tag discovered: ${tag.data}");
-          
-          final ndef = Ndef.from(tag);
-          if (ndef != null) {
-            final message = await ndef.read();
-            print("NDEF message read successfully.");
-            setState(() {
-              _nfcData = message.records
-                  .map((record) => String.fromCharCodes(record.payload))
-                  .join();
-              print("Parsed NFC data: $_nfcData");
-              isScanning = false;
-            });
+          if (coordinates is List) {
+            routeCoordinates = coordinates
+                .map<LatLng>((coord) => LatLng(coord[1], coord[0]))
+                .toList();
+            print("Route coordinates added: ${routeCoordinates.length} points");
           } else {
-            print("NDEF not supported by this tag.");
-            setState(() {
-              _nfcData = "NDEF not supported";
-              isScanning = false;
-            });
+            print("Invalid route coordinates format.");
           }
-          await NfcManager.instance.stopSession();
-          print("NFC scan session stopped.");
-        },
-      );
-    } catch (e) {
-      print("NFC scan failed: $e");
-      setState(() {
-        _nfcData = "NFC scan failed: $e";
-        isScanning = false;
-      });
+        } else {
+          print("Route geometry type is not 'LineString'.");
+        }
+      } else {
+        print("No route features found.");
+      }
     }
+
+    // Fetch sign data related to the route
+    print("Fetching signs for routeId: ${widget.routeId}");
+    final signRecords = await pb.collection('signs').getList(
+      filter: 'route.id="${widget.routeId}"',
+    );
+
+    if (signRecords.items.isNotEmpty) {
+      for (var sign in signRecords.items) {
+        final signLocation = sign.data['location']['geometry']['coordinates'];
+
+        if (signLocation != null && signLocation.length == 2) {
+          final signLatLng = LatLng(signLocation[1], signLocation[0]);
+          print("Sign location: $signLatLng");
+
+          _markers.add(
+            Marker(
+              markerId: MarkerId(sign.id),
+              position: signLatLng,
+              infoWindow: InfoWindow(
+                title: sign.data['name'] ?? 'Unknown Sign',
+                snippet: "Tap to view details",
+                onTap: () {
+                  _showSignDetails(sign);
+                },
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+            ),
+          );
+        } else {
+          print("Invalid coordinates for sign ID: ${sign.id}");
+        }
+      }
+    } else {
+      print("No signs found for this route.");
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+  } catch (e) {
+    print('Error fetching route/university details: $e');
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
+
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -131,9 +188,11 @@ class _RoutePageState extends State<RoutePage> {
         backgroundColor: const Color.fromRGBO(10, 86, 86, 1),
         elevation: 0,
       ),
+      backgroundColor: Colors.white,
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : routeDetails == null
+          
               ? const Center(
                   child: Text(
                     "Route details not found",
@@ -144,23 +203,16 @@ class _RoutePageState extends State<RoutePage> {
                   children: [
                     Expanded(
                       child: startingLocation == null
-                          ? const Center(child: Text("No map location available"))
+                          ? const Center(
+                              child: Text("No map location available"),
+                            )
                           : GoogleMap(
                               initialCameraPosition: CameraPosition(
                                 target: startingLocation!,
                                 zoom: 14.0,
                               ),
                               onMapCreated: _onMapCreated,
-                              markers: {
-                                Marker(
-                                  markerId: MarkerId(widget.routeId),
-                                  position: startingLocation!,
-                                  infoWindow: InfoWindow(
-                                    title: widget.routeName,
-                                    snippet: "Starting location",
-                                  ),
-                                ),
-                              },
+                              markers: _markers,
                               polylines: {
                                 if (routeCoordinates.isNotEmpty)
                                   Polyline(
@@ -174,40 +226,29 @@ class _RoutePageState extends State<RoutePage> {
                     ),
                     Padding(
                       padding: const EdgeInsets.all(20.0),
-                      child: Column(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Text(
-                            _nfcData,
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                          _actionButton(
+                            Icons.qr_code_scanner,
+                            "Scan QR",
+                            () {
+                              QRScanner.scanQRCode(context);
+                            },
                           ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _actionButton(
-                                Icons.nfc,
-                                isScanning ? "Scanning..." : "Scan NFC",
-                                () {
-                                  if (!isScanning) _startNfcScan();
-                                },
-                              ),
-                              _actionButton(
-                                Icons.camera_alt,
-                                "Record Sighting",
-                                () {
-                                  print("Record Sighting pressed");
-                                  // Add functionality here
-                                },
-                              ),
-                              _actionButton(
-                                Icons.report_problem,
-                                "Report Issue",
-                                () {
-                                  print("Report Issue pressed");
-                                  // Add functionality here
-                                },
-                              ),
-                            ],
+                          _actionButton(
+                            Icons.camera_alt,
+                            "Record Sighting",
+                            () {
+                              // Record sighting functionality
+                            },
+                          ),
+                          _actionButton(
+                            Icons.report_problem,
+                            "Report Issue",
+                            () {
+                              // Report issue functionality
+                            },
                           ),
                         ],
                       ),
